@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SentinelAI — The Human Firewall</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020408;
+    --surface: #080d14;
+    --border: #0d2137;
+    --accent: #00d4ff;
+    --accent2: #0066ff;
+    --danger: #ff3c5a;
+    --text: #c8dde8;
+    --muted: #4a6a7a;
+    --glow: rgba(0, 212, 255, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .scanline {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scan 4s linear infinite;
+    z-index: 1;
+    opacity: 0.6;
+  }
+
+  @keyframes scan {
+    0% { top: 0; }
+    100% { top: 100vh; }
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* HEADER */
+  header {
+    padding: 60px 0 40px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    padding: 6px 14px;
+    border: 1px solid rgba(0,212,255,0.3);
+    background: rgba(0,212,255,0.05);
+  }
+
+  .badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse-dot 1.5s infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.8); }
+  }
+
+  h1 {
+    font-size: clamp(42px, 7vw, 80px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -3px;
+    margin-bottom: 20px;
+  }
+
+  h1 .line1 { color: #fff; display: block; }
+  h1 .line2 { 
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--accent);
+    display: block;
+  }
+
+  .tagline {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 600px;
+    line-height: 1.6;
+    font-weight: 400;
+    margin-top: 16px;
+  }
+
+  .tagline strong { color: var(--accent); font-weight: 700; }
+
+  /* MAIN IDEA */
+  .idea-block {
+    padding: 60px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .idea-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 24px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .card:hover { border-color: rgba(0,212,255,0.4); }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .card:hover::after { opacity: 1; }
+
+  .card-icon {
+    font-size: 28px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .card p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .card p strong { color: var(--text); }
+
+  /* DEMO FLOW */
+  .flow-section {
+    padding: 60px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .flow-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .flow-sub {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 48px;
+  }
+
+  .conversation {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+    max-width: 700px;
+  }
+
+  .conv-header {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .conv-header .live {
+    background: var(--danger);
+    color: #fff;
+    font-size: 9px;
+    padding: 2px 8px;
+    letter-spacing: 2px;
+    animation: blink 1s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .message {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    animation: fadeIn 0.5s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message:nth-child(2) { animation-delay: 0.3s; }
+  .message:nth-child(3) { animation-delay: 0.6s; }
+  .message:nth-child(4) { animation-delay: 0.9s; }
+  .message:nth-child(5) { animation-delay: 1.2s; }
+
+  .msg-avatar {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 4px 8px;
+    white-space: nowrap;
+    height: fit-content;
+    letter-spacing: 1px;
+  }
+
+  .scammer .msg-avatar {
+    background: rgba(255,60,90,0.1);
+    border: 1px solid rgba(255,60,90,0.3);
+    color: var(--danger);
+  }
+
+  .ai-agent .msg-avatar {
+    background: rgba(0,212,255,0.1);
+    border: 1px solid rgba(0,212,255,0.3);
+    color: var(--accent);
+  }
+
+  .msg-bubble {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .scammer .msg-bubble { border-color: rgba(255,60,90,0.2); }
+  .ai-agent .msg-bubble { border-color: rgba(0,212,255,0.2); }
+
+  .msg-note {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .msg-note::before {
+    content: '▶';
+    font-size: 8px;
+  }
+
+  .outcome-box {
+    margin-top: 24px;
+    padding: 20px;
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.2);
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .outcome-box .oc-icon { font-size: 22px; flex-shrink: 0; }
+
+  .outcome-box h4 {
+    color: var(--accent);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  .outcome-box p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* 10X SECTION */
+  .tenx-section {
+    padding: 60px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tenx-header {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 48px;
+  }
+
+  .tenx-number {
+    font-size: 120px;
+    font-weight: 800;
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(0,212,255,0.3);
+    letter-spacing: -8px;
+  }
+
+  .tenx-heading {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    max-width: 400px;
+    line-height: 1.2;
+  }
+
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .comparison-table th {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comparison-table th:last-child {
+    color: var(--accent);
+    border-bottom-color: rgba(0,212,255,0.4);
+  }
+
+  .comparison-table td {
+    padding: 14px 20px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(13,33,55,0.5);
+    vertical-align: top;
+  }
+
+  .comparison-table td:first-child {
+    color: var(--muted);
+    width: 30%;
+  }
+
+  .comparison-table td:nth-child(2) { color: var(--text); }
+
+  .comparison-table td:last-child {
+    color: var(--accent);
+    background: rgba(0,212,255,0.03);
+  }
+
+  .tag-no {
+    display: inline-block;
+    background: rgba(255,60,90,0.1);
+    border: 1px solid rgba(255,60,90,0.3);
+    color: var(--danger);
+    font-size: 10px;
+    padding: 2px 8px;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .tag-yes {
+    display: inline-block;
+    background: rgba(0,212,255,0.1);
+    border: 1px solid rgba(0,212,255,0.3);
+    color: var(--accent);
+    font-size: 10px;
+    padding: 2px 8px;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  /* EXISTING SOLUTIONS */
+  .existing-section {
+    padding: 60px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .existing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 32px;
+  }
+
+  .existing-card {
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+  }
+
+  .existing-card .company-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .existing-card .company-type {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .existing-card .company-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .gap-tag {
+    font-size: 12px;
+    color: var(--danger);
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.5;
+  }
+
+  .gap-tag::before {
+    content: '↳';
+    color: var(--danger);
+    flex-shrink: 0;
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 40px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .impact-stat {
+    text-align: center;
+    padding: 24px 40px;
+    border: 1px solid var(--border);
+  }
+
+  .impact-stat .number {
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--accent);
+    display: block;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .impact-stat .label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .impact-row {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    margin-bottom: 60px;
+  }
+
+  .impact-row .impact-stat {
+    flex: 1;
+    background: var(--bg);
+    border: none;
+    border-radius: 0;
+  }
+
+  .quote-box {
+    text-align: center;
+    padding: 48px;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .quote-box blockquote {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.5;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .quote-box blockquote span { color: var(--accent); }
+
+  @media (max-width: 768px) {
+    .idea-grid, .existing-grid { grid-template-columns: 1fr; }
+    .comparison-table { font-size: 12px; }
+    .tenx-number { font-size: 72px; }
+  }
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<div class="container">
+  <!-- HEADER -->
+  <header>
+    <div class="badge">Moonshot Idea 01 — Hackathon 2026</div>
+    <h1>
+      <span class="line1">SENTINEL</span>
+      <span class="line2">PROXY</span>
+    </h1>
+    <p class="tagline">
+      Scammers call you. An AI answers. <strong>You never knew they tried.</strong><br>
+      The first communication layer where humans are no longer the attack surface.
+    </p>
+  </header>
+
+  <!-- WHAT IS IT -->
+  <section class="idea-block">
+    <div class="section-label">01 — What Is It</div>
+
+    <div style="max-width: 780px; margin-bottom: 40px;">
+      <p style="font-size: 17px; line-height: 1.8; color: var(--text);">
+        Every scam requires a human being to be manipulated. <strong style="color:#fff;">Remove the human from first contact</strong> — and the attack fails structurally. SentinelProxy is a personal AI agent that interposes itself between you and every inbound unknown communication: calls, messages, emails. It doesn't block them. It <strong style="color: var(--accent);">engages them fully</strong>, behaving exactly like you, while you receive nothing until the interaction is verified safe.
+      </p>
+    </div>
+
+    <div class="idea-grid">
+      <div class="card">
+        <span class="card-icon">🤖</span>
+        <h3>The AI Proxy</h3>
+        <p>For unknown callers, an AI that sounds and responds like you handles the entire interaction. It's indistinguishable from a real conversation — which means scammers burn time, reveal techniques, and expose themselves to a system that never panics, never complies, and never loses money.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🔐</span>
+        <h3>Verified Circle Pass-Through</h3>
+        <p>Family, friends, and trusted contacts are enrolled. Their calls pass through instantly — <strong>invisible to them, instant for you.</strong> The protection layer only activates for unknown or unverified contacts. You never experience friction with people who matter.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🕵️</span>
+        <h3>Scammer Intelligence Collection</h3>
+        <p>Every fraudulent contact becomes a data source. The AI extracts the script, the behavioral pattern, the claimed identity — and contributes it anonymously to a shared fraud intelligence network. A new pig-butchering variant used in Brazil is flagged globally within hours.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🧠</span>
+        <h3>Long-Game Containment</h3>
+        <p>For multi-week grooming attacks like romance fraud, the AI can sustain the relationship — keeping the scammer engaged, gathering evidence — while the real person <strong>never receives a single manipulative message.</strong> The attack is reversed: the scammer becomes the one being studied.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEMO FLOW -->
+  <section class="flow-section">
+    <div class="section-label">02 — How It Works In Practice</div>
+    <div class="flow-title">A pig-butchering attempt. Neutralized.</div>
+    <div class="flow-sub">Real person never involved. Scammer never knew.</div>
+
+    <div class="conversation">
+      <div class="conv-header">
+        <span>LIVE INTERCEPT LOG</span>
+        <span class="live">● LIVE</span>
+        <span style="margin-left: auto;">UNKNOWN CONTACT — UNVERIFIED</span>
+      </div>
+
+      <div class="message scammer">
+        <span class="msg-avatar">SCAMMER</span>
+        <div>
+          <div class="msg-bubble">"Hi! I think I messaged the wrong number — sorry! My name is Sarah. Are you from Toronto?"</div>
+        </div>
+      </div>
+
+      <div class="message ai-agent">
+        <span class="msg-avatar">AI·PROXY</span>
+        <div>
+          <div class="msg-bubble">"Oh no worries! Yes I am — small world haha. What were you looking for?"</div>
+          <div class="msg-note">Pattern detected: wrong-number opener — pig butchering stage 1</div>
+        </div>
+      </div>
+
+      <div class="message scammer">
+        <span class="msg-avatar">SCAMMER</span>
+        <div>
+          <div class="msg-bubble">"Haha, I was trying to reach my cousin. Hey you seem nice — do you invest at all? I've been doing really well with crypto lately…"</div>
+        </div>
+      </div>
+
+      <div class="message ai-agent">
+        <span class="msg-avatar">AI·PROXY</span>
+        <div>
+          <div class="msg-bubble">"A little! What platform do you use? I've heard mixed things about crypto."</div>
+          <div class="msg-note">Confidence: 94% match — investment grooming script identified</div>
+        </div>
+      </div>
+
+      <div class="message scammer">
+        <span class="msg-avatar">SCAMMER</span>
+        <div>
+          <div class="msg-bubble">"I use this platform called TradePro — my uncle runs it. I made $12,000 last month…"</div>
+        </div>
+      </div>
+
+      <div class="outcome-box">
+        <span class="oc-icon">🛡️</span>
+        <div>
+          <h4>Attack Contained — Day 3 of projected 90-day grooming cycle</h4>
+          <p>Real user received zero messages. Scammer script, phone origin, and platform name reported to fraud intelligence network. Pattern shared with 2.3M protected users globally. Your grandmother was gardening this whole time.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10X WHY -->
+  <section class="tenx-section">
+    <div class="section-label">03 — Why This Is 10x</div>
+
+    <div class="tenx-header">
+      <span class="tenx-number">10×</span>
+      <h2 class="tenx-heading">Not a better detector. A structural elimination.</h2>
+    </div>
+
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Dimension</th>
+          <th>Every Existing Solution</th>
+          <th>SentinelProxy</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Timing</td>
+          <td>Detects attack after contact is made</td>
+          <td>Human never makes contact at all</td>
+        </tr>
+        <tr>
+          <td>Attack vector</td>
+          <td>Tries to detect manipulation signals</td>
+          <td>Manipulation has no human to land on</td>
+        </tr>
+        <tr>
+          <td>Pig butchering</td>
+          <td><span class="tag-no">UNDETECTABLE</span> — voluntary transactions look normal</td>
+          <td>Scammer talks to AI for months. Money never moves.</td>
+        </tr>
+        <tr>
+          <td>Voice cloning</td>
+          <td>Tries to detect synthetic audio</td>
+          <td>Even a perfect clone talks to another AI</td>
+        </tr>
+        <tr>
+          <td>Model</td>
+          <td>Defensive — reduce damage</td>
+          <td>Offensive — scammer becomes the intelligence source</td>
+        </tr>
+        <tr>
+          <td>Scales with AI?</td>
+          <td><span class="tag-no">NO</span> — better AI attacks defeat better detectors</td>
+          <td><span class="tag-yes">YES</span> — better AI makes the proxy more convincing</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- EXISTING SOLUTIONS -->
+  <section class="existing-section">
+    <div class="section-label">04 — What Exists Today & Why It Falls Short</div>
+
+    <div class="existing-grid">
+      <div class="existing-card">
+        <div class="company-name">Carefull / EverSafe</div>
+        <div class="company-type">Financial Monitoring</div>
+        <div class="company-desc">AI monitors bank transactions for anomalies. Alerts family when unusual financial activity is detected. $19.7M raised.</div>
+        <div class="gap-tag">Intervenes at the transaction — after weeks of psychological manipulation are already complete.</div>
+      </div>
+      <div class="existing-card">
+        <div class="company-name">Hiya / Robokiller</div>
+        <div class="company-type">Call Screening</div>
+        <div class="company-desc">Screens incoming calls, blocks known scam numbers, answers robocalls with bot responses.</div>
+        <div class="gap-tag">Blocks known numbers. Pig butchering uses new, unregistered personal numbers. Completely blind to it.</div>
+      </div>
+      <div class="existing-card">
+        <div class="company-name">Apple / Google AI Screening</div>
+        <div class="company-type">Native OS Features</div>
+        <div class="company-desc">On-device call screening, spam detection, message filtering built into iOS and Android.</div>
+        <div class="gap-tag">One-turn interaction. Cannot sustain multi-week conversations or collect intelligence from ongoing scam relationships.</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; padding: 24px; border: 1px solid rgba(0,212,255,0.15); background: rgba(0,212,255,0.03);">
+      <p style="font-size: 14px; color: var(--muted); line-height: 1.7;">
+        <strong style="color: var(--accent);">The critical gap every existing solution shares:</strong> They all assume the attacker will reach a human being, and try to protect that human. SentinelProxy eliminates the assumption entirely. No human in the loop means no psychological manipulation is possible — regardless of how convincing the AI-generated voice, face, or relationship is.
+      </p>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="impact-row">
+    <div class="impact-stat">
+      <span class="number">$7.7B</span>
+      <span class="label">Elder fraud losses 2025</span>
+    </div>
+    <div class="impact-stat">
+      <span class="number">76%</span>
+      <span class="label">Victims unaware they're being scammed</span>
+    </div>
+    <div class="impact-stat">
+      <span class="number">4 mo.</span>
+      <span class="label">Average pig butchering grooming cycle</span>
+    </div>
+    <div class="impact-stat">
+      <span class="number">0</span>
+      <span class="label">Solutions operating at the relationship layer</span>
+    </div>
+  </div>
+
+  <!-- QUOTE -->
+  <div class="quote-box" style="margin-bottom: 60px;">
+    <blockquote>
+      "Every scam requires a human to be manipulated.<br>
+      <span>We removed the human from the equation.</span>"
+    </blockquote>
+  </div>
+</div>
+
+</body>
+</html>
